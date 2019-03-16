@@ -1,6 +1,6 @@
 #[derive(Debug, PartialEq)]
 pub enum Token {
-    Illegal(String),
+    Illegal,
     EOF,
 
     // Identifier + Literal
@@ -21,6 +21,6 @@ pub enum Token {
     Rbrace,
 
     // Keyword
-    Function,
+    Fn,
     Let,
 }
