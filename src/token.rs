@@ -10,6 +10,15 @@ pub enum Token {
     // Operator
     Assign,
     Plus,
+    Minus,
+    Bang,
+    Asterisk,
+    Slash,
+
+    Equal,
+    NotEqual,
+    LessThan,
+    GreaterThan,
 
     // Delimiter
     Comma,
@@ -21,6 +30,11 @@ pub enum Token {
     Rbrace,
 
     // Keyword
-    Fn,
+    Function,
     Let,
+    True,
+    False,
+    If,
+    Else,
+    Return,
 }

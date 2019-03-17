@@ -29,14 +29,42 @@ impl Lexer {
         self.read_position += 1;
     }
 
+    fn peek_char(&self) -> u8 {
+        if self.read_position >= self.input.len() {
+            0
+        } else {
+            self.input.as_bytes()[self.read_position]
+        }
+    }
+
     pub fn next_token(&mut self) -> Token {
         let tok: Token;
 
         self.skip_whitespace();
 
         match self.ch {
+            b'=' => {
+                if self.peek_char() == b'=' {
+                    self.read_char();
+                    tok = Token::Equal;
+                } else {
+                    tok = Token::Assign;
+                }
+            }
             b'+' => tok = Token::Plus,
-            b'=' => tok = Token::Assign,
+            b'-' => tok = Token::Minus,
+            b'!' => {
+                if self.peek_char() == b'=' {
+                    self.read_char();
+                    tok = Token::NotEqual;
+                } else {
+                    tok = Token::Bang;
+                }
+            }
+            b'*' => tok = Token::Asterisk,
+            b'/' => tok = Token::Slash,
+            b'<' => tok = Token::LessThan,
+            b'>' => tok = Token::GreaterThan,
             b',' => tok = Token::Comma,
             b';' => tok = Token::Semicolon,
             b'(' => tok = Token::Lparen,
@@ -81,8 +109,13 @@ impl Lexer {
     fn consume_identifier(&mut self) -> Token {
         let literal = self.read_identifier();
         match literal {
-            "fn" => return Token::Fn,
+            "fn" => return Token::Function,
             "let" => return Token::Let,
+            "true" => return Token::True,
+            "false" => return Token::False,
+            "if" => return Token::If,
+            "else" => return Token::Else,
+            "return" => return Token::Return,
             _ => return Token::Ident(literal.to_string()),
         }
     }
@@ -126,6 +159,17 @@ let add = fn(x, y) {
 };
 
 let result = add(five, ten);
+!-/*5;
+5 < 10 > 5;
+
+if (5 < 10) {
+    return true;
+} else {
+    return false;
+}
+
+10 == 10;
+10 != 9;
 ";
 
         let types: Vec<Token> = vec![
@@ -144,7 +188,7 @@ let result = add(five, ten);
             Token::Let,
             Token::Ident(String::from("add")),
             Token::Assign,
-            Token::Fn,
+            Token::Function,
             Token::Lparen,
             Token::Ident(String::from("x")),
             Token::Comma,
@@ -169,6 +213,48 @@ let result = add(five, ten);
             Token::Comma,
             Token::Ident(String::from("ten")),
             Token::Rparen,
+            Token::Semicolon,
+            //
+            Token::Bang,
+            Token::Minus,
+            Token::Slash,
+            Token::Asterisk,
+            Token::Int(5),
+            Token::Semicolon,
+            //
+            Token::Int(5),
+            Token::LessThan,
+            Token::Int(10),
+            Token::GreaterThan,
+            Token::Int(5),
+            Token::Semicolon,
+            //
+            Token::If,
+            Token::Lparen,
+            Token::Int(5),
+            Token::LessThan,
+            Token::Int(10),
+            Token::Rparen,
+            Token::Lbrace,
+            Token::Return,
+            Token::True,
+            Token::Semicolon,
+            Token::Rbrace,
+            Token::Else,
+            Token::Lbrace,
+            Token::Return,
+            Token::False,
+            Token::Semicolon,
+            Token::Rbrace,
+            //
+            Token::Int(10),
+            Token::Equal,
+            Token::Int(10),
+            Token::Semicolon,
+            //
+            Token::Int(10),
+            Token::NotEqual,
+            Token::Int(9),
             Token::Semicolon,
             Token::EOF,
         ];
