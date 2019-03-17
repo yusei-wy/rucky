@@ -63,8 +63,8 @@ impl Lexer {
             }
             b'*' => tok = Token::Asterisk,
             b'/' => tok = Token::Slash,
-            b'<' => tok = Token::LessThan,
-            b'>' => tok = Token::GreaterThan,
+            b'<' => tok = Token::Lt,
+            b'>' => tok = Token::Gt,
             b',' => tok = Token::Comma,
             b';' => tok = Token::Semicolon,
             b'(' => tok = Token::Lparen,
@@ -109,7 +109,7 @@ impl Lexer {
     fn consume_identifier(&mut self) -> Token {
         let literal = self.read_identifier();
         match literal {
-            "fn" => return Token::Function,
+            "fn" => return Token::Fn,
             "let" => return Token::Let,
             "true" => return Token::True,
             "false" => return Token::False,
@@ -188,7 +188,7 @@ if (5 < 10) {
             Token::Let,
             Token::Ident(String::from("add")),
             Token::Assign,
-            Token::Function,
+            Token::Fn,
             Token::Lparen,
             Token::Ident(String::from("x")),
             Token::Comma,
@@ -223,16 +223,16 @@ if (5 < 10) {
             Token::Semicolon,
             //
             Token::Int(5),
-            Token::LessThan,
+            Token::Lt,
             Token::Int(10),
-            Token::GreaterThan,
+            Token::Gt,
             Token::Int(5),
             Token::Semicolon,
             //
             Token::If,
             Token::Lparen,
             Token::Int(5),
-            Token::LessThan,
+            Token::Lt,
             Token::Int(10),
             Token::Rparen,
             Token::Lbrace,

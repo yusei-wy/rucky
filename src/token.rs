@@ -17,8 +17,8 @@ pub enum Token {
 
     Equal,
     NotEqual,
-    LessThan,
-    GreaterThan,
+    Lt,
+    Gt,
 
     // Delimiter
     Comma,
@@ -30,7 +30,7 @@ pub enum Token {
     Rbrace,
 
     // Keyword
-    Function,
+    Fn,
     Let,
     True,
     False,
