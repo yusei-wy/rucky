@@ -1,0 +1,184 @@
+use crate::ast::*;
+use crate::lexer::Lexer;
+use crate::token::Token;
+
+pub struct Parser {
+    l: Lexer,
+    cur_token: Token,
+    peek_token: Token,
+    errors: Vec<String>,
+}
+
+impl Parser {
+    pub fn new(l: Lexer) -> Parser {
+        let mut p = Parser {
+            l,
+            cur_token: Token::EOF,
+            peek_token: Token::EOF,
+            errors: vec![],
+        };
+
+        p.next_token();
+        p.next_token();
+
+        p
+    }
+
+    fn next_token(&mut self) {
+        std::mem::swap(&mut self.cur_token, &mut self.peek_token);
+        self.peek_token = self.l.next_token();
+    }
+
+    pub fn parse_program(&mut self) -> Program {
+        let mut program: Program = vec![];
+
+        while !self.cur_token_is(Token::EOF) {
+            match self.parse_stmt() {
+                Some(stmt) => program.push(stmt),
+                None => {}
+            }
+            self.next_token();
+        }
+
+        program
+    }
+
+    fn parse_stmt(&mut self) -> Option<Stmt> {
+        match self.cur_token {
+            Token::Let => self.parse_let_stmt(),
+            _ => None,
+            // Token::Return => self.parse_return_stmt(),
+            // Token::If => self.parse_if_stmt(),
+            // _ => self.parse_expr_stmt(),
+        }
+    }
+
+    fn parse_let_stmt(&mut self) -> Option<Stmt> {
+        match self.peek_token {
+            Token::Ident(_) => self.next_token(),
+            _ => return None,
+        }
+
+        let name = match self.parse_ident() {
+            Some(name) => name,
+            None => return None,
+        };
+
+        if !self.consume_token(Token::Assign) {
+            return None;
+        }
+
+        self.next_token();
+
+        let expr = match self.parse_expr() {
+            Some(expr) => expr,
+            None => return None,
+        };
+
+        while !self.cur_token_is(Token::Semicolon) {
+            self.next_token();
+        }
+
+        Some(Stmt::Let(name, expr))
+    }
+
+    fn parse_ident(&self) -> Option<Ident> {
+        match self.cur_token {
+            Token::Ident(ref name) => Some(Ident(name.clone())),
+            _ => None,
+        }
+    }
+
+    fn parse_expr(&self) -> Option<Expr> {
+        match self.cur_token {
+            Token::Ident(ref ident) => Some(Expr::Literal(Literal::String(ident.clone()))),
+            Token::Int(ref int) => Some(Expr::Literal(Literal::Int(int.clone()))),
+            _ => None,
+        }
+    }
+
+    fn cur_token_is(&self, tok: Token) -> bool {
+        self.cur_token == tok
+    }
+
+    fn peek_token_is(&self, tok: &Token) -> bool {
+        self.peek_token == *tok
+    }
+
+    fn consume_token(&mut self, tok: Token) -> bool {
+        if self.peek_token_is(&tok) {
+            self.next_token();
+            true
+        } else {
+            self.peek_error(&tok);
+            false
+        }
+    }
+
+    fn peek_error(&mut self, tok: &Token) {
+        let msg = format!(
+            "expected next token to be {:?}, got {:?} instead",
+            tok, self.peek_token,
+        );
+        self.errors.push(msg);
+    }
+}
+
+pub fn check_parser_errors(p: &Parser) {
+    if p.errors.len() == 0 {
+        return;
+    }
+
+    eprintln!("parser has {} erros", p.errors.len());
+    for msg in &p.errors {
+        eprintln!("parser error: {}", msg);
+    }
+    panic!("");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::*;
+    use ast::*;
+    use lexer::Lexer;
+    use parser::{check_parser_errors, Parser};
+
+    #[test]
+    fn test_let_statements() {
+        let input = r#"
+let x = 5;
+let y = 10;
+let foobar = 838383;
+"#;
+
+        let l = Lexer::new(input);
+        let mut p = Parser::new(l);
+
+        let program = p.parse_program();
+        let len = program.len();
+
+        check_parser_errors(&p);
+
+        if len == 0 {
+            panic!("parse_program() returned empty");
+        } else if len != 3 {
+            panic!("Program does not contain 3 statements. got={}", len);
+        }
+
+        let tests: Vec<Stmt> = vec![
+            Stmt::Let(Ident(String::from("x")), Expr::Literal(Literal::Int(5))),
+            Stmt::Let(Ident(String::from("y")), Expr::Literal(Literal::Int(10))),
+            Stmt::Let(
+                Ident(String::from("foobar")),
+                Expr::Literal(Literal::Int(838383)),
+            ),
+        ];
+
+        for (i, tt) in tests.iter().enumerate() {
+            let stmt = &program[i];
+            if stmt != tt {
+                panic!("got={:?}. expected={:?}", stmt, tt);
+            }
+        }
+    }
+}
