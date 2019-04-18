@@ -43,16 +43,18 @@ impl Parser {
         program
     }
 
+    /// Parse statement
     fn parse_stmt(&mut self) -> Option<Stmt> {
         match self.cur_token {
             Token::Let => self.parse_let_stmt(),
+            Token::Return => self.parse_return_stmt(),
             _ => None,
-            // Token::Return => self.parse_return_stmt(),
             // Token::If => self.parse_if_stmt(),
             // _ => self.parse_expr_stmt(),
         }
     }
 
+    /// Parse let statement
     fn parse_let_stmt(&mut self) -> Option<Stmt> {
         match self.peek_token {
             Token::Ident(_) => self.next_token(),
@@ -80,6 +82,22 @@ impl Parser {
         }
 
         Some(Stmt::Let(name, expr))
+    }
+
+    /// Parse return statement
+    fn parse_return_stmt(&mut self) -> Option<Stmt> {
+        self.next_token();
+
+        let expr = match self.parse_expr() {
+            Some(expr) => expr,
+            None => return None,
+        };
+
+        while !self.cur_token_is(Token::Semicolon) {
+            self.next_token();
+        }
+
+        Some(Stmt::Return(expr))
     }
 
     fn parse_ident(&self) -> Option<Ident> {
@@ -172,6 +190,42 @@ let foobar = 838383;
                 Ident(String::from("foobar")),
                 Expr::Literal(Literal::Int(838383)),
             ),
+        ];
+
+        for (i, tt) in tests.iter().enumerate() {
+            let stmt = &program[i];
+            if stmt != tt {
+                panic!("got={:?}. expected={:?}", stmt, tt);
+            }
+        }
+    }
+
+    #[test]
+    fn test_return_statements() {
+        let input = r#"
+return 5;
+return 10;
+return 993322;
+"#;
+
+        let l = Lexer::new(input);
+        let mut p = Parser::new(l);
+
+        let program = p.parse_program();
+        let len = program.len();
+
+        check_parser_errors(&p);
+
+        if len == 0 {
+            panic!("parse_program() returned empty");
+        } else if len != 3 {
+            panic!("Program does not contain 3 statements. got={}", len);
+        }
+
+        let tests: Vec<Stmt> = vec![
+            Stmt::Return(Expr::Literal(Literal::Int(5))),
+            Stmt::Return(Expr::Literal(Literal::Int(10))),
+            Stmt::Return(Expr::Literal(Literal::Int(993322))),
         ];
 
         for (i, tt) in tests.iter().enumerate() {
