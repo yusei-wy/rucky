@@ -48,9 +48,7 @@ impl Parser {
         match self.cur_token {
             Token::Let => self.parse_let_stmt(),
             Token::Return => self.parse_return_stmt(),
-            _ => None,
-            // Token::If => self.parse_if_stmt(),
-            // _ => self.parse_expr_stmt(),
+            _ => self.parse_expr_stmt(),
         }
     }
 
@@ -72,7 +70,7 @@ impl Parser {
 
         self.next_token();
 
-        let expr = match self.parse_expr() {
+        let expr = match self.parse_expr(Precedence::Lowest) {
             Some(expr) => expr,
             None => return None,
         };
@@ -88,7 +86,7 @@ impl Parser {
     fn parse_return_stmt(&mut self) -> Option<Stmt> {
         self.next_token();
 
-        let expr = match self.parse_expr() {
+        let expr = match self.parse_expr(Precedence::Lowest) {
             Some(expr) => expr,
             None => return None,
         };
@@ -102,14 +100,42 @@ impl Parser {
 
     fn parse_ident(&self) -> Option<Ident> {
         match self.cur_token {
-            Token::Ident(ref name) => Some(Ident(name.clone())),
+            Token::Ident(ref ident) => Some(Ident(ident.clone())),
             _ => None,
         }
     }
 
-    fn parse_expr(&self) -> Option<Expr> {
+    /// Parse expression statement
+    fn parse_expr_stmt(&mut self) -> Option<Stmt> {
+        match self.parse_expr(Precedence::Lowest) {
+            Some(expr) => {
+                self.consume_token(Token::Semicolon);
+                Some(Stmt::Expr(expr))
+            }
+            _ => None,
+        }
+    }
+
+    /// Parse expression
+    fn parse_expr(&self, precendence: Precedence) -> Option<Expr> {
+        let left = match self.cur_token {
+            Token::Ident(_) => self.parse_ident_expr(),
+            Token::Int(_) => self.parse_int_expr(),
+            _ => return None,
+        };
+
+        left
+    }
+
+    fn parse_ident_expr(&self) -> Option<Expr> {
+        match self.parse_ident() {
+            Some(ident) => Some(Expr::Ident(ident)),
+            _ => None,
+        }
+    }
+
+    fn parse_int_expr(&self) -> Option<Expr> {
         match self.cur_token {
-            Token::Ident(ref ident) => Some(Expr::Literal(Literal::String(ident.clone()))),
             Token::Int(ref int) => Some(Expr::Literal(Literal::Int(int.clone()))),
             _ => None,
         }
@@ -135,7 +161,7 @@ impl Parser {
 
     fn peek_error(&mut self, tok: &Token) {
         let msg = format!(
-            "expected next token to be {:?}, got {:?} instead",
+            "expected next Some(token to be {:?}, got {:?} instead",
             tok, self.peek_token,
         );
         self.errors.push(msg);
@@ -233,6 +259,28 @@ return 993322;
             if stmt != tt {
                 panic!("got={:?}. expected={:?}", stmt, tt);
             }
+        }
+    }
+
+    #[test]
+    fn test_ident_expr() {
+        let input = "foobar;";
+
+        let l = Lexer::new(input);
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        let len = program.len();
+
+        check_parser_errors(&p);
+
+        if len == 0 {
+            panic!("Program has not enought statments. got={}", len);
+        }
+
+        let tests: Vec<Stmt> = vec![Stmt::Expr(Expr::Ident(Ident(String::from("foobar"))))];
+
+        if program != tests {
+            panic!("got={:?}. expected={:?}", program, tests);
         }
     }
 }
