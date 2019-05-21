@@ -283,4 +283,26 @@ return 993322;
             panic!("got={:?}. expected={:?}", program, tests);
         }
     }
+
+    #[test]
+    fn test_int_expr() {
+        let input = "5;";
+
+        let l = Lexer::new(input);
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        let len = program.len();
+
+        check_parser_errors(&p);
+
+        if len == 0 {
+            panic!("Program has not enought statments. got={}", len);
+        }
+
+        let tests: Vec<Stmt> = vec![Stmt::Expr(Expr::Literal(Literal::Int(5)))];
+
+        if program != tests {
+            panic!("got={:?}. expected={:?}", program, tests);
+        }
+    }
 }
