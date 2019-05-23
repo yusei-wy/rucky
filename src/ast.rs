@@ -3,12 +3,15 @@ pub struct Ident(pub String);
 
 #[derive(Debug, PartialEq)]
 pub enum Prefix {
+    Bang,
     Plus,
+    Minus,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Infix {
     Plus,
+    Minus,
 }
 
 #[derive(Debug, PartialEq)]

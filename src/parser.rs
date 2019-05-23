@@ -117,16 +117,19 @@ impl Parser {
     }
 
     /// Parse expression
-    fn parse_expr(&self, precendence: Precedence) -> Option<Expr> {
+    fn parse_expr(&mut self, precendence: Precedence) -> Option<Expr> {
+        // prefix
         let left = match self.cur_token {
             Token::Ident(_) => self.parse_ident_expr(),
             Token::Int(_) => self.parse_int_expr(),
+            Token::Bang | Token::Plus | Token::Minus => self.parse_prefix_expr(),
             _ => return None,
         };
 
         left
     }
 
+    /// Parse identifier expression
     fn parse_ident_expr(&self) -> Option<Expr> {
         match self.parse_ident() {
             Some(ident) => Some(Expr::Ident(ident)),
@@ -134,9 +137,27 @@ impl Parser {
         }
     }
 
+    /// Parse integer literal expression
     fn parse_int_expr(&self) -> Option<Expr> {
         match self.cur_token {
             Token::Int(ref int) => Some(Expr::Literal(Literal::Int(int.clone()))),
+            _ => None,
+        }
+    }
+
+    /// Parser prefix expression
+    fn parse_prefix_expr(&mut self) -> Option<Expr> {
+        let prefix = match self.cur_token {
+            Token::Bang => Prefix::Bang,
+            Token::Plus => Prefix::Plus,
+            Token::Minus => Prefix::Minus,
+            _ => return None,
+        };
+
+        self.next_token();
+
+        match self.parse_expr(Precedence::Lowest) {
+            Some(expr) => Some(Expr::Prefix(prefix, Box::new(expr))),
             _ => None,
         }
     }
@@ -303,6 +324,40 @@ return 993322;
 
         if program != tests {
             panic!("got={:?}. expected={:?}", program, tests);
+        }
+    }
+
+    #[test]
+    fn test_prefix_expr() {
+        let tests: Vec<(&str, Vec<Stmt>)> = vec![
+            (
+                "!5;",
+                vec![Stmt::Expr(Expr::Prefix(
+                    Prefix::Bang,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "-15;",
+                vec![Stmt::Expr(Expr::Prefix(
+                    Prefix::Minus,
+                    Box::new(Expr::Literal(Literal::Int(15))),
+                ))],
+            ),
+        ];
+
+        for (input, expected) in tests {
+            let mut parser = Parser::new(Lexer::new(input));
+            let program = parser.parse_program();
+            let len = program.len();
+
+            if len == 0 {
+                panic!("Program has not enought statments. got={}", len);
+            }
+
+            if program != expected {
+                panic!("got={:?}. expected={:?}", program, expected);
+            }
         }
     }
 }
