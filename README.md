@@ -1,7 +1,5 @@
 # Rucky
 
----
-
 Rucky is programming language developed based on [Monkey](https://interpreterbook.com/#the-monkey-programming-language).
 
 # Preference
