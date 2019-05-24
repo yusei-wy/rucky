@@ -12,6 +12,12 @@ pub enum Prefix {
 pub enum Infix {
     Plus,
     Minus,
+    Asterisk,
+    Slash,
+    Lt,
+    Gt,
+    Equal,
+    NotEqual,
 }
 
 #[derive(Debug, PartialEq)]

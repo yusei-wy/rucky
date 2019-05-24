@@ -126,7 +126,16 @@ impl Parser {
             _ => return None,
         };
 
-        left
+        if !self.peek_token_is_infix() {
+            return left;
+        }
+
+        self.next_token();
+
+        match left {
+            Some(expr) => self.parse_infix_expr(expr),
+            _ => None,
+        }
     }
 
     /// Parse identifier expression
@@ -162,12 +171,48 @@ impl Parser {
         }
     }
 
+    /// Parser infix expression
+    fn parse_infix_expr(&mut self, left: Expr) -> Option<Expr> {
+        let infix = match self.cur_token {
+            Token::Plus => Infix::Plus,
+            Token::Minus => Infix::Minus,
+            Token::Asterisk => Infix::Asterisk,
+            Token::Slash => Infix::Slash,
+            Token::Lt => Infix::Lt,
+            Token::Gt => Infix::Gt,
+            Token::Equal => Infix::Equal,
+            Token::NotEqual => Infix::NotEqual,
+            _ => return None,
+        };
+
+        self.next_token();
+
+        match self.parse_expr(Precedence::Lowest) {
+            Some(expr) => Some(Expr::Infix(infix, Box::new(left), Box::new(expr))),
+            _ => None,
+        }
+    }
+
     fn cur_token_is(&self, tok: Token) -> bool {
         self.cur_token == tok
     }
 
     fn peek_token_is(&self, tok: &Token) -> bool {
         self.peek_token == *tok
+    }
+
+    fn peek_token_is_infix(&self) -> bool {
+        match self.peek_token {
+            Token::Plus
+            | Token::Minus
+            | Token::Asterisk
+            | Token::Slash
+            | Token::Lt
+            | Token::Gt
+            | Token::Equal
+            | Token::NotEqual => true,
+            _ => false,
+        }
     }
 
     fn consume_token(&mut self, tok: Token) -> bool {
@@ -342,6 +387,90 @@ return 993322;
                 vec![Stmt::Expr(Expr::Prefix(
                     Prefix::Minus,
                     Box::new(Expr::Literal(Literal::Int(15))),
+                ))],
+            ),
+        ];
+
+        for (input, expected) in tests {
+            let mut parser = Parser::new(Lexer::new(input));
+            let program = parser.parse_program();
+            let len = program.len();
+
+            if len == 0 {
+                panic!("Program has not enought statments. got={}", len);
+            }
+
+            if program != expected {
+                panic!("got={:?}. expected={:?}", program, expected);
+            }
+        }
+    }
+
+    #[test]
+    fn test_infix_expr() {
+        let tests: Vec<(&str, Vec<Stmt>)> = vec![
+            (
+                "5 + 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::Plus,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "5 - 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::Minus,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "5 * 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::Asterisk,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "5 / 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::Slash,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "5 < 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::Lt,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "5 > 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::Gt,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "5 == 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::Equal,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                ))],
+            ),
+            (
+                "5 != 5;",
+                vec![Stmt::Expr(Expr::Infix(
+                    Infix::NotEqual,
+                    Box::new(Expr::Literal(Literal::Int(5))),
+                    Box::new(Expr::Literal(Literal::Int(5))),
                 ))],
             ),
         ];
